@@ -1324,6 +1324,122 @@ public class FordFulkerson {
 }
 ```
 
+## 最小割问题  
+<a href="https://www.luogu.com.cn/problem/P2774">P2774 方格取数问题</a>  
+在一个有 m*n 个方格的棋盘中，每个方格中有一个正整数。现要从方格中取数，使任意 2 个数所在方格没有公共边，且取出的数的总和最大。试设计一个满足要求的取数算法。对于给定的方格棋盘，按照取数要求编程找出总和最大的数。  
+```c++
+#include <bits/stdc++.h>
+#define LL long long
+#define INF 0x3f3f3f3f;
+using namespace std;
+
+int M, N;
+int S, T;
+int dir[4][2]={{1,0},{-1,0},{0,1},{0,-1}};
+struct Edge{
+    int next, from, to, remain;
+}e[30000];
+int en;
+int head[11000];
+queue<int> q;
+int visited[11000];
+int preEdge[11000];
+int minflow[11000];
+int resflow;
+int totalSum;
+
+void addEdge(int from, int to, int flow){
+    e[en].next=head[from];
+    e[en].from=from;
+    e[en].to=to;
+    e[en].remain=flow;
+    head[from]=en;
+    ++en;
+}
+
+void add(int from, int to, int flow){
+    addEdge(from, to, flow);
+    addEdge(to, from, 0);
+}
+
+void bfs(){
+    memset(visited,0,sizeof(visited));
+    memset(preEdge,-1,sizeof(preEdge));
+    memset(minflow,0,sizeof(minflow));
+    q.push(S);
+    visited[S]=1;
+    minflow[S]=INF;
+    while(!q.empty()){
+        int u=q.front();
+        q.pop();
+        for(int i=head[u];i!=-1;i=e[i].next){
+            if(e[i].remain>0 && !visited[e[i].to]){
+                visited[e[i].to]=1;
+                minflow[e[i].to]=min(minflow[u],e[i].remain);
+                preEdge[e[i].to]=i;
+                q.push(e[i].to);
+            }
+        }
+    }
+}
+
+void EK(){
+    while(true){
+        bfs();
+        if(preEdge[T]==-1) break;
+        resflow+=minflow[T];
+        int v=T;
+        while(true){
+            int edge=preEdge[v];
+            if(edge==-1) break;
+            e[edge].remain-=minflow[T];
+            e[edge^1].remain+=minflow[T];
+            v=e[edge].from;
+        }
+    }
+}
+
+int getIndex(int i, int j){
+    return i*N+j;
+}
+
+int main(){
+    memset(head,-1,sizeof(head));
+    scanf("%d %d", &M, &N);
+    S=2*M*N, T=3*M*N;
+    for(int i=0;i<M;++i){
+        for(int j=0;j<N;++j){
+            int num;
+            scanf("%d", &num);
+            totalSum+=num;
+            if((i+j)%2==0){
+                add(S,getIndex(i,j),num);
+            }else {
+                add(getIndex(i,j),T,num);
+            }
+        }
+    }
+    for(int i=0;i<M;++i){
+        for(int j=0;j<N;++j){
+            if((i+j)%2==0){
+                for(int d=0;d<4;++d){
+                    int ni=i+dir[d][0];
+                    int nj=j+dir[d][1];
+                    if(ni>=0 && ni<M && nj>=0 && nj<N){
+                        add(getIndex(i,j),getIndex(ni,nj),0x3f3f3f3f);
+                    }
+                }
+            }
+        }
+    }
+
+    EK();
+
+    printf("%d", totalSum-resflow);
+    return 0;
+}  
+```
+
 ## 最小费用最大流  
 结合最大流算法和SPFA  
 如题，给出一个网络图，以及其源点和汇点，每条边已知其最大流量和单位流量费用，求出其网络最大流和在最大流情况下的最小费用。  <a href="https://www.luogu.com.cn/problem/P3381">链接</a>
@@ -1443,6 +1559,132 @@ int main(){
     return 0;
 }
 
+```
+
+## 最小费用最大流解决KM匹配问题  
+P1559 羽毛球队有男女运动员各n人。给定2 个n×n矩阵P和Q。P[i][j]是男运动员i和女运动员j配对组成混合双打的男运动员竞赛优势；Q[i][j]是女运动员i和男运动员j配合的女运动员竞赛优势。由于技术配合和心理状态等各种因素影响，P[i][j]不一定等于Q[j][i]。男运动员i和女运动员j配对组成混合双打的男女双方竞赛优势为P[i][j]*Q[j][i]。设计一个算法，计算男女运动员最佳配对法，使各组男女双方竞赛优势的总和达到最大。  
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+
+const int maxn=20;
+const int INF=0x3f3f3f3f;
+int q[maxn][maxn];
+int p[maxn][maxn];
+int w[maxn][maxn];
+int n;
+int S,T;
+int dis[100];
+queue<int> qe;
+int inqueue[100];
+int pre[100];
+int minflow[100];
+int resflow;
+int res;
+
+struct Edge{
+    int next, from, to, remain,fi;
+}e[1000];
+int head[100];
+int en;
+
+void addEdge(int from, int to, int flow, int fi){
+    e[en].next=head[from];
+    e[en].from=from;
+    e[en].to=to;
+    e[en].remain=flow;
+    e[en].fi=fi;
+    head[from]=en;
+    ++en;
+}
+
+void add(int from, int to, int flow, int fi){
+    addEdge(from,to,flow,fi);
+    addEdge(to,from,0,-fi);
+}
+
+void spfa(){
+    memset(dis,128,sizeof(dis));
+    memset(pre,-1,sizeof(pre));
+    memset(minflow,0,sizeof(minflow));
+
+    minflow[S]=INF;
+    dis[S]=0;
+    qe.push(S);
+    inqueue[S]=1;
+    while(!qe.empty()){
+        int cur=qe.front();
+        qe.pop();
+        inqueue[cur]=0;
+        for(int i=head[cur];i!=-1;i=e[i].next){
+            int v=e[i].to;
+            int c=e[i].fi;
+            if(e[i].remain>0 && dis[v]<dis[cur]+c){
+                minflow[v]=min(minflow[cur],e[i].remain);
+                dis[v]=dis[cur]+c;
+                pre[v]=i;
+                if(!inqueue[v]){
+                    inqueue[v]=1;
+                    qe.push(v);
+                }
+            }
+        }
+    }
+}
+
+void EK(){
+    while(true){
+        spfa();
+        if(pre[T]==-1) break;
+
+        int v=T;
+        while(true){
+            int edge=pre[v];
+            if(edge==-1) break;
+            e[edge].remain-=minflow[T];
+            e[edge^1].remain+=minflow[T];
+            v=e[edge].from;
+        }
+        resflow+=minflow[T];
+        res+=minflow[T]*dis[T];
+    }
+}
+
+int main(){
+    memset(head,-1,sizeof(head));
+    res=0;
+    resflow=0;
+    scanf("%d", &n);
+    for(int i=1;i<=n;++i){
+        for(int j=1;j<=n;++j){
+            scanf("%d", &p[i][j]);
+        }
+    }
+    for(int i=1;i<=n;++i){
+        for(int j=1;j<=n;++j){
+            scanf("%d", &q[i][j]);
+        }
+    }
+    for(int i=1;i<=n;++i){
+        for(int j=1;j<=n;++j){
+            w[i][j]=p[i][j]*q[j][i];
+        }
+    }
+    S=0;
+    T=2*n+1;
+    for(int i=1;i<=n;++i){
+        add(S,i,1,0);
+        add(i+n,T,1,0);
+    }
+    for(int i=1;i<=n;++i){
+        for(int j=1;j<=n;++j){
+            add(i,j+n,1,w[i][j]);
+        }
+    }
+    EK();
+    printf("%d", res);
+    return 0;
+}  
 ```
 
 ## 拓扑排序  
@@ -2535,3 +2777,210 @@ public:
 <a href="https://www.youtube.com/watch?v=-JjA4BLQyqE">视频详解</a>
 <a href="https://www.youtube.com/watch?v=Q4zHb-Swzro">视频详解2</a>
 <a href="https://en.wikipedia.org/wiki/Held%E2%80%93Karp_algorithm">wiki</a>
+
+
+## LCA  
+#### 倍增算法  
+<a href="https://www.luogu.com.cn/blog/morslin/solution-p3379">介绍</a>  
+<a href="https://www.luogu.com.cn/problem/P3379">P3379</a>  
+```c++  
+#include <bits/stdc++.h>
+#define LL long long
+using namespace std;
+
+int N, M, S;
+const int maxn=500000+10;
+int lg[maxn];
+struct Edge{
+    int to, next;
+}e[maxn<<1];
+int head[maxn];
+int en;
+int fa[maxn][22];
+int depth[maxn];
+
+void addEdge(int from, int to){
+    e[en].next=head[from];
+    e[en].to=to;
+    head[from]=en;
+    ++en;
+}
+
+void dfs(int cur, int pre){
+    depth[cur]=depth[pre]+1;
+    fa[cur][0]=pre;
+    for(int i=1;i<=lg[depth[cur]-1];++i){
+        fa[cur][i]=fa[fa[cur][i-1]][i-1];
+    }
+    for(int i=head[cur];i!=-1;i=e[i].next){
+        int v=e[i].to;
+        if(v!=pre){
+            dfs(v,cur);
+        }
+    }
+}
+
+int lca(int x, int y){
+    if(depth[x]<depth[y]) swap(x,y);
+
+    while(depth[x]>depth[y]){
+        x=fa[x][lg[depth[x]-depth[y]]];
+    }
+    if(x==y) return x;
+
+    for(int i=lg[depth[x]-1];i>=0;--i){
+        if(fa[x][i]!=fa[y][i]){
+            x=fa[x][i];
+            y=fa[y][i];
+        }
+    }
+    return fa[x][0];
+}
+
+int main(){
+    memset(head,-1,sizeof(head));
+    scanf("%d %d %d", &N, &M, &S);
+    for(int i=1;i<=N-1;++i){
+        int u,v;
+        scanf("%d %d", &u, &v);
+        addEdge(u,v);
+        addEdge(v,u);
+    }
+
+    lg[2]=1;
+    for(int i=3;i<=N;++i){
+        if(1<<(lg[i-1]+1)==i){
+            lg[i]=lg[i-1]+1;
+        }else{
+            lg[i]=lg[i-1];
+        }
+    }
+    dfs(S,0);
+    for(int i=1;i<=M;++i){
+        int x, y;
+        scanf("%d %d", &x, &y);
+        int root=lca(x,y);
+        printf("%d\n", root);
+    }
+
+    return 0;
+}
+```
+
+## 树上差分  
+<a href="https://www.luogu.com.cn/blog/eps/cf191fools-and-roads">博客</a>  
+<a href="https://www.luogu.com.cn/problem/CF191C">CF191C Fools and Roads</a>  
+```c++
+#include <bits/stdc++.h>
+#define LL long long
+using namespace std;
+
+const int maxn=100000+10;
+int lg[maxn];
+int n;
+struct Edge{
+    int to, next;
+}e[maxn<<1];
+int head[maxn];
+int en;
+int fa[maxn][22];
+int depth[maxn];
+int u[maxn];
+int v[maxn];
+
+int cf[maxn];
+
+void addEdge(int from, int to){
+    e[en].next=head[from];
+    e[en].to=to;
+    head[from]=en;
+    ++en;
+}
+
+void dfs(int cur, int pre){
+    depth[cur]=depth[pre]+1;
+    fa[cur][0]=pre;
+    for(int i=1;i<=lg[depth[cur]-1];++i){
+        fa[cur][i]=fa[fa[cur][i-1]][i-1];
+    }
+
+    for(int i=head[cur];i!=-1;i=e[i].next){
+        int v=e[i].to;
+        if(v!=pre){
+            dfs(v,cur);
+        }
+    }
+}
+
+int lca(int a, int b){
+    if(depth[a]<depth[b]) swap(a,b);
+
+    while(depth[a]>depth[b]){
+        a=fa[a][lg[depth[a]-depth[b]]];
+    }
+
+    if(a==b) return a;
+
+    for(int i=lg[depth[a]];i>=0;--i){
+        if(fa[a][i]!=fa[b][i]){
+            a=fa[a][i];
+            b=fa[b][i];
+        }
+    }
+
+    return fa[a][0];
+}
+
+void dfs2(int cur, int pre){
+    for(int i=head[cur];i!=-1;i=e[i].next){
+        int ve=e[i].to;
+        if(ve!=pre){
+            dfs2(ve,cur);
+            cf[cur]+=cf[ve];
+        }
+    }
+}
+
+int main(){
+    memset(head,-1,sizeof(head));
+    scanf("%d", &n);
+    lg[1]=0;
+    lg[2]=1;
+    for(int i=3;i<=n;++i){
+        if(i==(1<<(lg[i-1]+1))){
+            lg[i]=lg[i-1]+1;
+        }else{
+            lg[i]=lg[i-1];
+        }
+    }
+    for(int i=1;i<=n-1;++i){
+
+        scanf("%d %d", &u[i], &v[i]);
+        addEdge(u[i],v[i]);
+        addEdge(v[i],u[i]);
+    }
+    dfs(1,0);
+    int k;
+    scanf("%d", &k);
+    for(int i=1;i<=k;++i){
+        int a,b;
+        scanf("%d %d", &a, &b);
+        int c=lca(a,b);
+        ++cf[a];
+        ++cf[b];
+        cf[c]-=2;
+
+    }
+
+    dfs2(1,0);
+
+    for(int i=1;i<=n-1;++i){
+        if(depth[u[i]]>depth[v[i]]){
+            printf("%d ", cf[u[i]]);
+        }else {
+            printf("%d ", cf[v[i]]);
+        }
+    }
+    return 0;
+}  
+```  
