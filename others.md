@@ -8,6 +8,7 @@
 8. Skiplist
 9. Reservoir sampling
 10. monotone stack
+11. cyclic swapping  
 
 ## Minimax and Alpha–beta pruning  
 ```
@@ -988,3 +989,8 @@ public:
     }
 };
 ```
+
+
+## cyclic swapping  
+LC765  
+<a href="https://leetcode.com/problems/couples-holding-hands/discuss/113362/JavaC%2B%2B-O(N)-solution-using-cyclic-swapping">detailed intro</a>  
